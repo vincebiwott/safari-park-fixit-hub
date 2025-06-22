@@ -59,8 +59,9 @@ const SignUpForm: React.FC = () => {
 
       if (success) {
         toast({
-          title: 'Registration Successful',
-          description: 'Your account has been created successfully'
+          title: 'Registration Submitted',
+          description: 'Your registration request has been submitted for admin approval. You will receive notification once approved.',
+          duration: 5000
         });
       } else {
         toast({
@@ -88,7 +89,7 @@ const SignUpForm: React.FC = () => {
             <span className="text-white font-bold text-xl">SP</span>
           </div>
           <CardTitle className="text-2xl font-bold">Join Safari Park Hotel</CardTitle>
-          <CardDescription>Create your maintenance system account</CardDescription>
+          <CardDescription>Submit your registration request for approval</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -125,7 +126,6 @@ const SignUpForm: React.FC = () => {
                   <SelectItem value="supervisor">Supervisor</SelectItem>
                   <SelectItem value="technician">Technician</SelectItem>
                   <SelectItem value="hod">Head of Department</SelectItem>
-                  <SelectItem value="super_admin">System Administrator</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -184,7 +184,7 @@ const SignUpForm: React.FC = () => {
             </div>
 
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? 'Creating Account...' : 'Create Account'}
+              {isLoading ? 'Submitting Request...' : 'Submit Registration Request'}
             </Button>
           </form>
 
@@ -194,6 +194,13 @@ const SignUpForm: React.FC = () => {
               <Link to="/login" className="text-primary hover:underline">
                 Sign in here
               </Link>
+            </p>
+          </div>
+
+          <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+            <p className="text-sm text-amber-800">
+              <strong>Note:</strong> All registration requests require approval from the system administrator. 
+              You will be notified once your account is approved and activated.
             </p>
           </div>
         </CardContent>

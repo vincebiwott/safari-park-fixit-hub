@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User, AuthState } from '../types/auth';
+import { User, AuthState, UserStatus } from '../types/auth';
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
 
@@ -13,6 +13,7 @@ const mockUsers: User[] = [
     role: 'supervisor',
     department: 'Front Office',
     isActive: true,
+    status: 'active',
     createdAt: new Date()
   },
   {
@@ -23,6 +24,7 @@ const mockUsers: User[] = [
     technicianCategory: 'electrician',
     department: 'Maintenance',
     isActive: true,
+    status: 'active',
     createdAt: new Date()
   },
   {
@@ -32,6 +34,7 @@ const mockUsers: User[] = [
     role: 'hod',
     department: 'Management',
     isActive: true,
+    status: 'active',
     createdAt: new Date()
   },
   {
@@ -41,9 +44,9 @@ const mockUsers: User[] = [
     role: 'super_admin',
     department: 'IT',
     isActive: true,
+    status: 'active',
     createdAt: new Date()
   },
-  // Additional demo users for presentation
   {
     id: '5',
     name: 'James Plumber',
@@ -52,6 +55,7 @@ const mockUsers: User[] = [
     technicianCategory: 'plumber',
     department: 'Maintenance',
     isActive: true,
+    status: 'active',
     createdAt: new Date()
   },
   {
@@ -62,6 +66,7 @@ const mockUsers: User[] = [
     technicianCategory: 'carpenter',
     department: 'Maintenance',
     isActive: true,
+    status: 'active',
     createdAt: new Date()
   }
 ];
@@ -69,10 +74,12 @@ const mockUsers: User[] = [
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [users, setUsers] = useState<User[]>(mockUsers);
+  const [pendingUsers, setPendingUsers] = useState<User[]>([]);
 
   useEffect(() => {
     const savedUser = localStorage.getItem('currentUser');
     const savedUsers = localStorage.getItem('systemUsers');
+    const savedPendingUsers = localStorage.getItem('pendingUsers');
     
     if (savedUser) {
       setUser(JSON.parse(savedUser));
@@ -83,10 +90,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } else {
       localStorage.setItem('systemUsers', JSON.stringify(mockUsers));
     }
+
+    if (savedPendingUsers) {
+      setPendingUsers(JSON.parse(savedPendingUsers));
+    }
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
-    const foundUser = users.find(u => u.email === email && u.isActive);
+    const foundUser = users.find(u => u.email === email && u.isActive && u.status === 'active');
     
     if (foundUser && password === 'password123') {
       setUser(foundUser);
@@ -104,9 +115,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     technicianCategory?: string;
     department: string;
   }): Promise<boolean> => {
-    // Check if user already exists
+    // Check if user already exists in active users or pending users
     const existingUser = users.find(u => u.email === userData.email);
-    if (existingUser) {
+    const existingPendingUser = pendingUsers.find(u => u.email === userData.email);
+    
+    if (existingUser || existingPendingUser) {
       return false;
     }
 
@@ -117,18 +130,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       role: userData.role as any,
       technicianCategory: userData.technicianCategory as any,
       department: userData.department,
-      isActive: true,
+      isActive: false,
+      status: 'pending',
       createdAt: new Date()
     };
 
-    const updatedUsers = [...users, newUser];
+    const updatedPendingUsers = [...pendingUsers, newUser];
+    setPendingUsers(updatedPendingUsers);
+    localStorage.setItem('pendingUsers', JSON.stringify(updatedPendingUsers));
+    
+    return true;
+  };
+
+  const approveUser = (userId: string): boolean => {
+    const userToApprove = pendingUsers.find(u => u.id === userId);
+    if (!userToApprove) return false;
+
+    const approvedUser: User = {
+      ...userToApprove,
+      isActive: true,
+      status: 'active'
+    };
+
+    const updatedUsers = [...users, approvedUser];
+    const updatedPendingUsers = pendingUsers.filter(u => u.id !== userId);
+
     setUsers(updatedUsers);
+    setPendingUsers(updatedPendingUsers);
+    
     localStorage.setItem('systemUsers', JSON.stringify(updatedUsers));
-    
-    // Auto-login after registration
-    setUser(newUser);
-    localStorage.setItem('currentUser', JSON.stringify(newUser));
-    
+    localStorage.setItem('pendingUsers', JSON.stringify(updatedPendingUsers));
+
+    return true;
+  };
+
+  const rejectUser = (userId: string): boolean => {
+    const updatedPendingUsers = pendingUsers.filter(u => u.id !== userId);
+    setPendingUsers(updatedPendingUsers);
+    localStorage.setItem('pendingUsers', JSON.stringify(updatedPendingUsers));
     return true;
   };
 
@@ -139,7 +178,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUsers(updatedUsers);
     localStorage.setItem('systemUsers', JSON.stringify(updatedUsers));
 
-    // Update current user if it's the one being updated
     if (user && user.id === userId) {
       const updatedCurrentUser = { ...user, ...updates };
       setUser(updatedCurrentUser);
@@ -164,11 +202,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const value: AuthState = {
     user,
     users,
+    pendingUsers,
     isAuthenticated: !!user,
     login,
     register,
     updateUser,
     deleteUser,
+    approveUser,
+    rejectUser,
     logout
   };
 

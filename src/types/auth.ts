@@ -3,6 +3,8 @@ export type UserRole = 'supervisor' | 'technician' | 'hod' | 'super_admin';
 
 export type TechnicianCategory = 'plumber' | 'electrician' | 'ict' | 'carpenter' | 'ac_fridge';
 
+export type UserStatus = 'active' | 'inactive' | 'pending';
+
 export interface User {
   id: string;
   name: string;
@@ -11,12 +13,14 @@ export interface User {
   technicianCategory?: TechnicianCategory;
   department?: string;
   isActive: boolean;
+  status: UserStatus;
   createdAt: Date;
 }
 
 export interface AuthState {
   user: User | null;
   users: User[];
+  pendingUsers: User[];
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<boolean>;
   register: (userData: {
@@ -29,5 +33,7 @@ export interface AuthState {
   }) => Promise<boolean>;
   updateUser: (userId: string, updates: Partial<User>) => boolean;
   deleteUser: (userId: string) => boolean;
+  approveUser: (userId: string) => boolean;
+  rejectUser: (userId: string) => boolean;
   logout: () => void;
 }
