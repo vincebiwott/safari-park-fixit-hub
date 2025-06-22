@@ -8,8 +8,6 @@ import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import MainLayout from "./components/Layout/MainLayout";
 import LoginForm from "./components/Auth/LoginForm";
 import Dashboard from "./pages/Dashboard";
-import SubmitTicket from "./pages/SubmitTicket";
-import MyTickets from "./pages/MyTickets";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,16 +26,6 @@ const AppRoutes: React.FC = () => {
       <Route path="/dashboard" element={
         <ProtectedRoute>
           <Dashboard />
-        </ProtectedRoute>
-      } />
-      <Route path="/submit-ticket" element={
-        <ProtectedRoute>
-          <SubmitTicket />
-        </ProtectedRoute>
-      } />
-      <Route path="/my-tickets" element={
-        <ProtectedRoute>
-          <MyTickets />
         </ProtectedRoute>
       } />
       <Route path="/" element={<Navigate to="/dashboard" />} />
