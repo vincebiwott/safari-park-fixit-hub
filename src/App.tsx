@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,7 +6,9 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import MainLayout from "./components/Layout/MainLayout";
 import LoginForm from "./components/Auth/LoginForm";
+import SignUpForm from "./components/Auth/SignUpForm";
 import Dashboard from "./pages/Dashboard";
+import UserManagement from "./pages/UserManagement";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -17,16 +18,29 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   return isAuthenticated ? <>{children}</> : <Navigate to="/login" />;
 };
 
+const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, isAuthenticated } = useAuth();
+  if (!isAuthenticated) return <Navigate to="/login" />;
+  if (user?.role !== 'super_admin') return <Navigate to="/dashboard" />;
+  return <>{children}</>;
+};
+
 const AppRoutes: React.FC = () => {
   const { isAuthenticated } = useAuth();
 
   return (
     <Routes>
       <Route path="/login" element={!isAuthenticated ? <LoginForm /> : <Navigate to="/dashboard" />} />
+      <Route path="/signup" element={!isAuthenticated ? <SignUpForm /> : <Navigate to="/dashboard" />} />
       <Route path="/dashboard" element={
         <ProtectedRoute>
           <Dashboard />
         </ProtectedRoute>
+      } />
+      <Route path="/users" element={
+        <AdminRoute>
+          <UserManagement />
+        </AdminRoute>
       } />
       <Route path="/" element={<Navigate to="/dashboard" />} />
       <Route path="*" element={<NotFound />} />

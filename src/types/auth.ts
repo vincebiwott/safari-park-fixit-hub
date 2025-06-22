@@ -16,7 +16,18 @@ export interface User {
 
 export interface AuthState {
   user: User | null;
+  users: User[];
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<boolean>;
+  register: (userData: {
+    name: string;
+    email: string;
+    password: string;
+    role: string;
+    technicianCategory?: string;
+    department: string;
+  }) => Promise<boolean>;
+  updateUser: (userId: string, updates: Partial<User>) => boolean;
+  deleteUser: (userId: string) => boolean;
   logout: () => void;
 }
