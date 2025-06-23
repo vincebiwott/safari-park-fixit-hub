@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, AuthState, UserStatus } from '../types/auth';
 
@@ -73,38 +72,130 @@ const mockUsers: User[] = [
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [users, setUsers] = useState<User[]>(mockUsers);
+  const [users, setUsers] = useState<User[]>([]);
   const [pendingUsers, setPendingUsers] = useState<User[]>([]);
 
   useEffect(() => {
-    const savedUser = localStorage.getItem('currentUser');
-    const savedUsers = localStorage.getItem('systemUsers');
-    const savedPendingUsers = localStorage.getItem('pendingUsers');
+    console.log('🔧 AuthProvider initialization starting...');
     
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
-    
-    if (savedUsers) {
-      setUsers(JSON.parse(savedUsers));
-    } else {
+    // Clear any potentially corrupted data first
+    const resetLocalStorage = () => {
+      console.log('🗑️ Resetting localStorage to ensure fresh state');
+      localStorage.removeItem('currentUser');
+      localStorage.removeItem('systemUsers');
+      localStorage.removeItem('pendingUsers');
+    };
+
+    // Initialize with fresh mock data
+    const initializeUsers = () => {
+      console.log('📝 Initializing with fresh mock users:', mockUsers.length, 'users');
+      setUsers(mockUsers);
       localStorage.setItem('systemUsers', JSON.stringify(mockUsers));
+      console.log('✅ Users initialized successfully');
+    };
+
+    // Check if we need to reset
+    try {
+      const savedUsers = localStorage.getItem('systemUsers');
+      if (!savedUsers) {
+        console.log('❌ No saved users found, initializing fresh data');
+        resetLocalStorage();
+        initializeUsers();
+      } else {
+        const parsedUsers = JSON.parse(savedUsers);
+        console.log('📂 Found saved users:', parsedUsers.length, 'users');
+        
+        // Verify the admin user exists
+        const adminExists = parsedUsers.find((u: User) => u.email === 'admin@safaripark.com');
+        if (!adminExists) {
+          console.log('⚠️ Admin user missing, resetting data');
+          resetLocalStorage();
+          initializeUsers();
+        } else {
+          console.log('✅ Admin user found, using saved data');
+          setUsers(parsedUsers);
+        }
+      }
+    } catch (error) {
+      console.error('💥 Error parsing saved users, resetting:', error);
+      resetLocalStorage();
+      initializeUsers();
     }
 
-    if (savedPendingUsers) {
-      setPendingUsers(JSON.parse(savedPendingUsers));
+    // Handle pending users
+    try {
+      const savedPendingUsers = localStorage.getItem('pendingUsers');
+      if (savedPendingUsers) {
+        const parsedPendingUsers = JSON.parse(savedPendingUsers);
+        console.log('📂 Found pending users:', parsedPendingUsers.length, 'users');
+        setPendingUsers(parsedPendingUsers);
+      }
+    } catch (error) {
+      console.error('💥 Error parsing pending users:', error);
+      localStorage.removeItem('pendingUsers');
     }
+
+    // Handle current user
+    try {
+      const savedUser = localStorage.getItem('currentUser');
+      if (savedUser) {
+        const parsedUser = JSON.parse(savedUser);
+        console.log('👤 Found current user:', parsedUser.email);
+        setUser(parsedUser);
+      }
+    } catch (error) {
+      console.error('💥 Error parsing current user:', error);
+      localStorage.removeItem('currentUser');
+    }
+
+    console.log('✅ AuthProvider initialization complete');
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
-    const foundUser = users.find(u => u.email === email && u.isActive && u.status === 'active');
+    console.log('🔐 Login attempt starting...');
+    console.log('📧 Email:', email);
+    console.log('🔑 Password length:', password.length);
+    console.log('👥 Available users:', users.length);
     
-    if (foundUser && password === 'password123') {
+    // Log all available users for debugging
+    users.forEach((user, index) => {
+      console.log(`User ${index + 1}:`, {
+        email: user.email,
+        isActive: user.isActive,
+        status: user.status,
+        name: user.name
+      });
+    });
+
+    const foundUser = users.find(u => {
+      const emailMatch = u.email.toLowerCase() === email.toLowerCase();
+      console.log(`🔍 Checking user ${u.email}:`, {
+        emailMatch,
+        isActive: u.isActive,
+        status: u.status
+      });
+      return emailMatch && u.isActive && u.status === 'active';
+    });
+    
+    if (!foundUser) {
+      console.log('❌ No matching user found');
+      console.log('📊 Search criteria: email =', email, 'isActive = true, status = active');
+      return false;
+    }
+
+    console.log('✅ User found:', foundUser.name, foundUser.email);
+    console.log('🔑 Checking password...');
+    
+    if (password === 'password123') {
+      console.log('✅ Password correct, logging in user');
       setUser(foundUser);
       localStorage.setItem('currentUser', JSON.stringify(foundUser));
+      console.log('🎉 Login successful!');
       return true;
+    } else {
+      console.log('❌ Password incorrect. Expected: password123, Got:', password);
+      return false;
     }
-    return false;
   };
 
   const register = async (userData: {
@@ -195,6 +286,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
+    console.log('🚪 Logging out user');
     setUser(null);
     localStorage.removeItem('currentUser');
   };
