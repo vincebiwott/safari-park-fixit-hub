@@ -18,8 +18,8 @@ const LoginForm: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     console.log('🚀 Login form submitted');
-    console.log('📧 Email value:', email);
-    console.log('🔑 Password value (length):', password.length);
+    console.log('📧 Email:', email);
+    console.log('🔑 Password length:', password.length);
     
     setIsLoading(true);
 
@@ -29,13 +29,13 @@ const LoginForm: React.FC = () => {
       console.log('📊 Login result:', success);
       
       if (success) {
-        console.log('✅ Login successful, showing success toast');
+        console.log('✅ Login successful!');
         toast({
           title: 'Login Successful',
           description: 'Welcome to Safari Park Hotel Maintenance System'
         });
       } else {
-        console.log('❌ Login failed, showing error toast');
+        console.log('❌ Login failed');
         toast({
           title: 'Login Failed',
           description: 'Invalid email or password. Please check your credentials and try again.',
@@ -54,7 +54,6 @@ const LoginForm: React.FC = () => {
     }
   };
 
-  // Helper function to fill demo credentials
   const fillDemoCredentials = (demoEmail: string) => {
     console.log('🎭 Filling demo credentials for:', demoEmail);
     setEmail(demoEmail);
