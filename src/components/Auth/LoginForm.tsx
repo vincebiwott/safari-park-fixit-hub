@@ -84,12 +84,6 @@ const LoginForm: React.FC = () => {
               </Link>
             </p>
           </div>
-          
-          <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-sm text-blue-800">
-              <strong>Live System:</strong> You can now create a real account by signing up, or contact your administrator for access.
-            </p>
-          </div>
         </CardContent>
       </Card>
     </div>

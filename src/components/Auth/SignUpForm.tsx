@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { Link } from 'react-router-dom';
 
-type UserRole = 'supervisor' | 'technician' | 'hod';
+type UserRole = 'supervisor' | 'technician' | 'hod' | 'super_admin';
 type TechnicianCategory = 'plumber' | 'electrician' | 'ict' | 'carpenter' | 'ac_fridge';
 
 const SignUpForm: React.FC = () => {
@@ -110,6 +110,7 @@ const SignUpForm: React.FC = () => {
                   <SelectItem value="supervisor">Supervisor</SelectItem>
                   <SelectItem value="technician">Technician</SelectItem>
                   <SelectItem value="hod">Head of Department</SelectItem>
+                  <SelectItem value="super_admin">System Administrator</SelectItem>
                 </SelectContent>
               </Select>
             </div>

@@ -172,6 +172,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     department: string;
   }) => {
     try {
+      // Check if this is the first user - if so, make them super_admin
+      const { data: existingProfiles } = await supabase
+        .from('profiles')
+        .select('id')
+        .limit(1);
+      
+      const isFirstUser = !existingProfiles || existingProfiles.length === 0;
+      const finalRole = isFirstUser ? 'super_admin' : userData.role;
+
       const { data, error } = await supabase.auth.signUp({
         email: userData.email,
         password: userData.password,
@@ -179,7 +188,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           emailRedirectTo: `${window.location.origin}/`,
           data: {
             name: userData.name,
-            role: userData.role,
+            role: finalRole,
             technician_category: userData.technicianCategory,
             department: userData.department
           }
@@ -199,7 +208,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (data.user) {
         toast({
           title: 'Sign Up Successful',
-          description: 'Please check your email to confirm your account.',
+          description: isFirstUser 
+            ? 'Welcome! You have been granted admin access as the first user.'
+            : 'Please check your email to confirm your account.',
           duration: 5000
         });
         return true;
