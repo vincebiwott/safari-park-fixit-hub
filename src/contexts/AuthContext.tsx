@@ -62,7 +62,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return null;
       }
 
-      return data;
+      // Type assertion to ensure compatibility
+      return data as Profile;
     } catch (error) {
       console.error('Error fetching profile:', error);
       return null;
@@ -82,7 +83,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
-      setProfiles(data || []);
+      // Type assertion to ensure compatibility
+      setProfiles((data || []) as Profile[]);
     } catch (error) {
       console.error('Error fetching profiles:', error);
     }

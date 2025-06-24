@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import StatsCard from '@/components/Dashboard/StatsCard';
@@ -15,12 +14,12 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 const Dashboard: React.FC = () => {
-  const { user } = useAuth();
+  const { profile } = useAuth();
 
   const renderSupervisorDashboard = () => (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Welcome, {user?.name}</h1>
+        <h1 className="text-3xl font-bold text-gray-900">Welcome, {profile?.name}</h1>
         <p className="text-gray-600">Supervisor Dashboard - Submit and track your maintenance requests</p>
       </div>
       
@@ -109,8 +108,8 @@ const Dashboard: React.FC = () => {
   const renderTechnicianDashboard = () => (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Welcome, {user?.name}</h1>
-        <p className="text-gray-600">Technician Dashboard - {user?.technicianCategory} specialist</p>
+        <h1 className="text-3xl font-bold text-gray-900">Welcome, {profile?.name}</h1>
+        <p className="text-gray-600">Technician Dashboard - {profile?.technician_category} specialist</p>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -216,7 +215,7 @@ const Dashboard: React.FC = () => {
   const renderHODDashboard = () => (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Welcome, {user?.name}</h1>
+        <h1 className="text-3xl font-bold text-gray-900">Welcome, {profile?.name}</h1>
         <p className="text-gray-600">Head of Department Dashboard - System Overview</p>
       </div>
       
@@ -476,7 +475,7 @@ const Dashboard: React.FC = () => {
     </div>
   );
 
-  switch (user?.role) {
+  switch (profile?.role) {
     case 'supervisor':
       return renderSupervisorDashboard();
     case 'technician':
