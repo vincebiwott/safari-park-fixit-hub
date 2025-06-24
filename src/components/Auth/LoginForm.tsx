@@ -19,29 +19,12 @@ const LoginForm: React.FC = () => {
     e.preventDefault();
     console.log('🚀 Login form submitted');
     console.log('📧 Email:', email);
-    console.log('🔑 Password length:', password.length);
     
     setIsLoading(true);
 
     try {
-      console.log('⏳ Attempting login...');
       const success = await login(email.trim(), password);
       console.log('📊 Login result:', success);
-      
-      if (success) {
-        console.log('✅ Login successful!');
-        toast({
-          title: 'Login Successful',
-          description: 'Welcome to Safari Park Hotel Maintenance System'
-        });
-      } else {
-        console.log('❌ Login failed');
-        toast({
-          title: 'Login Failed',
-          description: 'Invalid email or password. Please check your credentials and try again.',
-          variant: 'destructive'
-        });
-      }
     } catch (error) {
       console.error('💥 Login error:', error);
       toast({
@@ -52,12 +35,6 @@ const LoginForm: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const fillDemoCredentials = (demoEmail: string) => {
-    console.log('🎭 Filling demo credentials for:', demoEmail);
-    setEmail(demoEmail);
-    setPassword('password123');
   };
 
   return (
@@ -108,41 +85,10 @@ const LoginForm: React.FC = () => {
             </p>
           </div>
           
-          <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-            <p className="text-sm font-medium text-gray-700 mb-2">Demo Accounts (Click to fill):</p>
-            <div className="space-y-1 text-xs">
-              <button 
-                type="button"
-                onClick={() => fillDemoCredentials('admin@safaripark.com')}
-                className="block w-full text-left p-2 hover:bg-gray-100 rounded transition-colors"
-              >
-                <span className="font-medium">Admin:</span> admin@safaripark.com
-              </button>
-              <button 
-                type="button"
-                onClick={() => fillDemoCredentials('supervisor@safaripark.com')}
-                className="block w-full text-left p-2 hover:bg-gray-100 rounded transition-colors"
-              >
-                <span className="font-medium">Supervisor:</span> supervisor@safaripark.com
-              </button>
-              <button 
-                type="button"
-                onClick={() => fillDemoCredentials('electrician@safaripark.com')}
-                className="block w-full text-left p-2 hover:bg-gray-100 rounded transition-colors"
-              >
-                <span className="font-medium">Technician:</span> electrician@safaripark.com
-              </button>
-              <button 
-                type="button"
-                onClick={() => fillDemoCredentials('hod@safaripark.com')}
-                className="block w-full text-left p-2 hover:bg-gray-100 rounded transition-colors"
-              >
-                <span className="font-medium">HOD:</span> hod@safaripark.com
-              </button>
-              <p className="mt-2 font-medium text-center bg-blue-100 p-2 rounded">
-                Password: password123 (for all accounts)
-              </p>
-            </div>
+          <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-sm text-blue-800">
+              <strong>Live System:</strong> You can now create a real account by signing up, or contact your administrator for access.
+            </p>
           </div>
         </CardContent>
       </Card>

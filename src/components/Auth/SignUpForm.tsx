@@ -7,8 +7,10 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { UserRole, TechnicianCategory } from '@/types/auth';
 import { Link } from 'react-router-dom';
+
+type UserRole = 'supervisor' | 'technician' | 'hod';
+type TechnicianCategory = 'plumber' | 'electrician' | 'ict' | 'carpenter' | 'ac_fridge';
 
 const SignUpForm: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -21,7 +23,7 @@ const SignUpForm: React.FC = () => {
     department: ''
   });
   const [isLoading, setIsLoading] = useState(false);
-  const { register } = useAuth();
+  const { signUp } = useAuth();
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -48,7 +50,7 @@ const SignUpForm: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const success = await register({
+      await signUp({
         name: formData.name,
         email: formData.email,
         password: formData.password,
@@ -56,26 +58,8 @@ const SignUpForm: React.FC = () => {
         technicianCategory: formData.role === 'technician' ? formData.technicianCategory : undefined,
         department: formData.department
       });
-
-      if (success) {
-        toast({
-          title: 'Registration Submitted',
-          description: 'Your registration request has been submitted for admin approval. You will receive notification once approved.',
-          duration: 5000
-        });
-      } else {
-        toast({
-          title: 'Registration Failed',
-          description: 'Email already exists or invalid data',
-          variant: 'destructive'
-        });
-      }
     } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'An error occurred during registration',
-        variant: 'destructive'
-      });
+      console.error('Sign up error:', error);
     } finally {
       setIsLoading(false);
     }
@@ -89,7 +73,7 @@ const SignUpForm: React.FC = () => {
             <span className="text-white font-bold text-xl">SP</span>
           </div>
           <CardTitle className="text-2xl font-bold">Join Safari Park Hotel</CardTitle>
-          <CardDescription>Submit your registration request for approval</CardDescription>
+          <CardDescription>Create your maintenance system account</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -184,7 +168,7 @@ const SignUpForm: React.FC = () => {
             </div>
 
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? 'Submitting Request...' : 'Submit Registration Request'}
+              {isLoading ? 'Creating Account...' : 'Create Account'}
             </Button>
           </form>
 
@@ -194,13 +178,6 @@ const SignUpForm: React.FC = () => {
               <Link to="/login" className="text-primary hover:underline">
                 Sign in here
               </Link>
-            </p>
-          </div>
-
-          <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-            <p className="text-sm text-amber-800">
-              <strong>Note:</strong> All registration requests require approval from the system administrator. 
-              You will be notified once your account is approved and activated.
             </p>
           </div>
         </CardContent>

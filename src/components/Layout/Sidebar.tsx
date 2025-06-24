@@ -16,7 +16,7 @@ import {
 import { cn } from '@/lib/utils';
 
 const Sidebar: React.FC = () => {
-  const { user } = useAuth();
+  const { profile } = useAuth();
   const location = useLocation();
 
   const getNavigationItems = () => {
@@ -24,7 +24,7 @@ const Sidebar: React.FC = () => {
       { name: 'Dashboard', href: '/dashboard', icon: Home }
     ];
 
-    switch (user?.role) {
+    switch (profile?.role) {
       case 'supervisor':
         return [
           ...baseItems,
