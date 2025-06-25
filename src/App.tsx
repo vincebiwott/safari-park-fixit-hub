@@ -17,10 +17,13 @@ const queryClient = new QueryClient();
 const LoadingSpinner = () => (
   <div className="min-h-screen flex items-center justify-center">
     <div className="text-center">
-      <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center mx-auto mb-4">
+      <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center mx-auto mb-4 animate-pulse">
         <span className="text-white font-bold text-sm">SP</span>
       </div>
-      <p className="text-gray-600">Loading...</p>
+      <p className="text-gray-600">Loading Safari Park Hotel System...</p>
+      <div className="mt-4 text-xs text-gray-500">
+        Initializing authentication...
+      </div>
     </div>
   </div>
 );

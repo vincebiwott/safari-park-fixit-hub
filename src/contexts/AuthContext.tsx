@@ -48,7 +48,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const { toast } = useToast();
 
   // Fetch user profile from database
-  const fetchUserProfile = async (userId: string) => {
+  const fetchUserProfile = async (userId: string): Promise<Profile | null> => {
     try {
       console.log('🔍 Fetching profile for user:', userId);
       const { data, error } = await supabase
@@ -92,10 +92,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Initialize auth state
   useEffect(() => {
     let mounted = true;
+    let loadingTimeout: NodeJS.Timeout;
     
     const initializeAuth = async () => {
       try {
         console.log('🚀 Initializing auth state...');
+        
+        // Set a timeout to prevent infinite loading
+        loadingTimeout = setTimeout(() => {
+          if (mounted) {
+            console.log('⏰ Auth initialization timeout - setting loading to false');
+            setIsLoading(false);
+          }
+        }, 10000); // 10 second timeout
         
         // Get initial session
         const { data: { session }, error } = await supabase.auth.getSession();
@@ -108,7 +117,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return;
         }
 
-        console.log('📊 Initial session check:', session?.user?.email || 'No session');
+        console.log('📊 Initial session:', session ? 'Found session' : 'No session');
         
         if (mounted) {
           setSession(session);
@@ -118,45 +127,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             console.log('👤 User found, fetching profile...');
             const userProfile = await fetchUserProfile(session.user.id);
             if (mounted) {
-              console.log('📋 Profile set:', userProfile?.name || 'No profile');
               setProfile(userProfile);
+              console.log('📋 Profile set:', userProfile?.name || 'No profile found');
             }
           }
           
+          clearTimeout(loadingTimeout);
           setIsLoading(false);
+          console.log('✅ Auth initialization complete');
         }
       } catch (error) {
         console.error('❌ Error initializing auth:', error);
         if (mounted) {
+          clearTimeout(loadingTimeout);
           setIsLoading(false);
         }
       }
     };
 
-    // Initialize auth
-    initializeAuth();
-
-    // Listen for auth changes
+    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mounted) return;
         
-        console.log('🔄 Auth state changed:', event, session?.user?.email || 'No user');
+        console.log('🔄 Auth state changed:', event, session ? 'Session exists' : 'No session');
         
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user && event !== 'SIGNED_OUT') {
           console.log('👤 User authenticated, fetching profile...');
-          setTimeout(async () => {
-            if (mounted) {
-              const userProfile = await fetchUserProfile(session.user.id);
-              if (mounted) {
-                console.log('📋 Profile loaded:', userProfile?.name || 'No profile');
-                setProfile(userProfile);
-              }
-            }
-          }, 0);
+          const userProfile = await fetchUserProfile(session.user.id);
+          if (mounted) {
+            setProfile(userProfile);
+            console.log('📋 Profile loaded:', userProfile?.name || 'No profile');
+          }
         } else {
           console.log('👋 User logged out or no user');
           if (mounted) {
@@ -170,8 +175,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     );
 
+    // Initialize auth
+    initializeAuth();
+
     return () => {
       mounted = false;
+      if (loadingTimeout) {
+        clearTimeout(loadingTimeout);
+      }
       subscription.unsubscribe();
     };
   }, []);
@@ -201,9 +212,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log('✅ Login successful for:', data.user.email);
         toast({
           title: 'Login Successful',
-          description: 'Welcome to Safari Park Hotel Maintenance System'
+          description: 'Welcome back!'
         });
-        // Don't set loading to false here - let the auth state change handler do it
         return true;
       }
 
