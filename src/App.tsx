@@ -14,27 +14,29 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+const LoadingSpinner = () => (
+  <div className="min-h-screen flex items-center justify-center">
+    <div className="text-center">
+      <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center mx-auto mb-4">
+        <span className="text-white font-bold text-sm">SP</span>
+      </div>
+      <p className="text-gray-600">Loading...</p>
+    </div>
+  </div>
+);
+
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, isLoading, user, profile } = useAuth();
   
   console.log('🛡️ ProtectedRoute check:', { isAuthenticated, isLoading, hasUser: !!user, hasProfile: !!profile });
   
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center mx-auto mb-4">
-            <span className="text-white font-bold text-sm">SP</span>
-          </div>
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner />;
   }
   
   if (!isAuthenticated) {
     console.log('🚫 Not authenticated, redirecting to login');
-    return <Navigate to="/login" />;
+    return <Navigate to="/login" replace />;
   }
   
   console.log('✅ Authenticated, rendering protected content');
@@ -47,22 +49,13 @@ const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   console.log('👑 AdminRoute check:', { role: profile?.role, isAuthenticated, isLoading });
   
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center mx-auto mb-4">
-            <span className="text-white font-bold text-sm">SP</span>
-          </div>
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner />;
   }
   
-  if (!isAuthenticated) return <Navigate to="/login" />;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
   if (profile?.role !== 'super_admin') {
     console.log('🚫 Not admin, redirecting to dashboard');
-    return <Navigate to="/dashboard" />;
+    return <Navigate to="/dashboard" replace />;
   }
   
   console.log('✅ Admin access granted');
@@ -75,22 +68,19 @@ const AppRoutes: React.FC = () => {
   console.log('🗺️ AppRoutes render:', { isAuthenticated, isLoading });
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center mx-auto mb-4">
-            <span className="text-white font-bold text-sm">SP</span>
-          </div>
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner />;
   }
 
   return (
     <Routes>
-      <Route path="/login" element={!isAuthenticated ? <LoginForm /> : <Navigate to="/dashboard" />} />
-      <Route path="/signup" element={!isAuthenticated ? <SignUpForm /> : <Navigate to="/dashboard" />} />
+      <Route 
+        path="/login" 
+        element={!isAuthenticated ? <LoginForm /> : <Navigate to="/dashboard" replace />} 
+      />
+      <Route 
+        path="/signup" 
+        element={!isAuthenticated ? <SignUpForm /> : <Navigate to="/dashboard" replace />} 
+      />
       <Route path="/dashboard" element={
         <ProtectedRoute>
           <Dashboard />
@@ -101,7 +91,7 @@ const AppRoutes: React.FC = () => {
           <UserManagement />
         </AdminRoute>
       } />
-      <Route path="/" element={<Navigate to="/dashboard" />} />
+      <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
