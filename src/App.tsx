@@ -31,7 +31,14 @@ const LoadingSpinner = () => (
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, isLoading, user, profile } = useAuth();
   
-  console.log('🛡️ ProtectedRoute check:', { isAuthenticated, isLoading, hasUser: !!user, hasProfile: !!profile });
+  console.log('🛡️ ProtectedRoute check:', { 
+    isAuthenticated, 
+    isLoading, 
+    hasUser: !!user, 
+    hasProfile: !!profile,
+    userEmail: user?.email,
+    profileName: profile?.name 
+  });
   
   if (isLoading) {
     return <LoadingSpinner />;

@@ -47,7 +47,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  // Fetch user profile from database
+  // Simplified profile fetching with better error handling
   const fetchUserProfile = async (userId: string): Promise<Profile | null> => {
     try {
       console.log('🔍 Fetching profile for user:', userId);
@@ -55,17 +55,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
       if (error) {
-        console.error('❌ Error fetching profile:', error);
+        console.error('❌ Error fetching profile:', error.message);
         return null;
       }
 
-      console.log('✅ Profile fetched:', data);
+      if (!data) {
+        console.log('⚠️ No profile found for user, creating default profile');
+        // If no profile exists, the trigger should have created one, but let's try again
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        const { data: retryData, error: retryError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .maybeSingle();
+        
+        if (retryError || !retryData) {
+          console.error('❌ Still no profile found after retry');
+          return null;
+        }
+        
+        console.log('✅ Profile found on retry:', retryData);
+        return retryData as Profile;
+      }
+
+      console.log('✅ Profile fetched successfully:', data.name);
       return data as Profile;
     } catch (error) {
-      console.error('❌ Error fetching profile:', error);
+      console.error('❌ Exception fetching profile:', error);
       return null;
     }
   };
@@ -92,19 +111,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Initialize auth state
   useEffect(() => {
     let mounted = true;
-    let loadingTimeout: NodeJS.Timeout;
     
     const initializeAuth = async () => {
       try {
         console.log('🚀 Initializing auth state...');
-        
-        // Set a timeout to prevent infinite loading
-        loadingTimeout = setTimeout(() => {
-          if (mounted) {
-            console.log('⏰ Auth initialization timeout - setting loading to false');
-            setIsLoading(false);
-          }
-        }, 10000); // 10 second timeout
         
         // Get initial session
         const { data: { session }, error } = await supabase.auth.getSession();
@@ -117,7 +127,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return;
         }
 
-        console.log('📊 Initial session:', session ? 'Found session' : 'No session');
+        console.log('📊 Initial session:', session ? `Found for ${session.user?.email}` : 'No session');
         
         if (mounted) {
           setSession(session);
@@ -128,18 +138,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const userProfile = await fetchUserProfile(session.user.id);
             if (mounted) {
               setProfile(userProfile);
-              console.log('📋 Profile set:', userProfile?.name || 'No profile found');
+              console.log('📋 Profile set:', userProfile ? `${userProfile.name} (${userProfile.role})` : 'No profile found');
             }
           }
           
-          clearTimeout(loadingTimeout);
           setIsLoading(false);
           console.log('✅ Auth initialization complete');
         }
       } catch (error) {
         console.error('❌ Error initializing auth:', error);
         if (mounted) {
-          clearTimeout(loadingTimeout);
           setIsLoading(false);
         }
       }
@@ -150,7 +158,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       async (event, session) => {
         if (!mounted) return;
         
-        console.log('🔄 Auth state changed:', event, session ? 'Session exists' : 'No session');
+        console.log('🔄 Auth state changed:', event, session ? `Session for ${session.user?.email}` : 'No session');
         
         setSession(session);
         setUser(session?.user ?? null);
@@ -160,7 +168,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const userProfile = await fetchUserProfile(session.user.id);
           if (mounted) {
             setProfile(userProfile);
-            console.log('📋 Profile loaded:', userProfile?.name || 'No profile');
+            console.log('📋 Profile loaded:', userProfile ? `${userProfile.name} (${userProfile.role})` : 'No profile');
           }
         } else {
           console.log('👋 User logged out or no user');
@@ -180,9 +188,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     return () => {
       mounted = false;
-      if (loadingTimeout) {
-        clearTimeout(loadingTimeout);
-      }
       subscription.unsubscribe();
     };
   }, []);
