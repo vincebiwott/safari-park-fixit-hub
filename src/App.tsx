@@ -21,24 +21,14 @@ const LoadingSpinner = () => (
         <span className="text-white font-bold text-sm">SP</span>
       </div>
       <p className="text-gray-600">Loading Safari Park Hotel System...</p>
-      <div className="mt-4 text-xs text-gray-500">
-        Initializing authentication...
-      </div>
     </div>
   </div>
 );
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated, isLoading, user, profile } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
   
-  console.log('🛡️ ProtectedRoute check:', { 
-    isAuthenticated, 
-    isLoading, 
-    hasUser: !!user, 
-    hasProfile: !!profile,
-    userEmail: user?.email,
-    profileName: profile?.name 
-  });
+  console.log('🛡️ ProtectedRoute check:', { isAuthenticated, isLoading });
   
   if (isLoading) {
     return <LoadingSpinner />;

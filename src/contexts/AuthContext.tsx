@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -47,7 +48,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  // Simplified profile fetching with better error handling
+  // Simplified profile fetching
   const fetchUserProfile = async (userId: string): Promise<Profile | null> => {
     try {
       console.log('🔍 Fetching profile for user:', userId);
@@ -55,33 +56,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .maybeSingle();
+        .single();
 
       if (error) {
         console.error('❌ Error fetching profile:', error.message);
+        // Don't block auth for profile errors - user can still be authenticated
         return null;
       }
 
-      if (!data) {
-        console.log('⚠️ No profile found for user, creating default profile');
-        // If no profile exists, the trigger should have created one, but let's try again
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        const { data: retryData, error: retryError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', userId)
-          .maybeSingle();
-        
-        if (retryError || !retryData) {
-          console.error('❌ Still no profile found after retry');
-          return null;
-        }
-        
-        console.log('✅ Profile found on retry:', retryData);
-        return retryData as Profile;
-      }
-
-      console.log('✅ Profile fetched successfully:', data.name);
+      console.log('✅ Profile fetched successfully:', data?.name);
       return data as Profile;
     } catch (error) {
       console.error('❌ Exception fetching profile:', error);
@@ -133,17 +116,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setSession(session);
           setUser(session?.user ?? null);
           
-          if (session?.user) {
-            console.log('👤 User found, fetching profile...');
-            const userProfile = await fetchUserProfile(session.user.id);
-            if (mounted) {
-              setProfile(userProfile);
-              console.log('📋 Profile set:', userProfile ? `${userProfile.name} (${userProfile.role})` : 'No profile found');
-            }
-          }
-          
+          // Don't block on profile fetch - set loading to false first
           setIsLoading(false);
-          console.log('✅ Auth initialization complete');
+          
+          // Fetch profile in background if user exists
+          if (session?.user) {
+            console.log('👤 User found, fetching profile in background...');
+            fetchUserProfile(session.user.id).then(userProfile => {
+              if (mounted) {
+                setProfile(userProfile);
+                console.log('📋 Profile loaded:', userProfile ? `${userProfile.name} (${userProfile.role})` : 'Profile not found');
+              }
+            });
+          }
         }
       } catch (error) {
         console.error('❌ Error initializing auth:', error);
@@ -163,22 +148,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSession(session);
         setUser(session?.user ?? null);
         
+        // Always set loading to false on auth state change
+        setIsLoading(false);
+        
         if (session?.user && event !== 'SIGNED_OUT') {
-          console.log('👤 User authenticated, fetching profile...');
-          const userProfile = await fetchUserProfile(session.user.id);
-          if (mounted) {
-            setProfile(userProfile);
-            console.log('📋 Profile loaded:', userProfile ? `${userProfile.name} (${userProfile.role})` : 'No profile');
-          }
+          console.log('👤 User authenticated, fetching profile in background...');
+          // Fetch profile in background
+          setTimeout(() => {
+            fetchUserProfile(session.user.id).then(userProfile => {
+              if (mounted) {
+                setProfile(userProfile);
+                console.log('📋 Profile loaded:', userProfile ? `${userProfile.name} (${userProfile.role})` : 'Profile not found');
+              }
+            });
+          }, 0);
         } else {
           console.log('👋 User logged out or no user');
           if (mounted) {
             setProfile(null);
           }
-        }
-        
-        if (mounted) {
-          setIsLoading(false);
         }
       }
     );
@@ -186,9 +174,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Initialize auth
     initializeAuth();
 
+    // Failsafe timeout - ensure loading doesn't get stuck
+    const timeoutId = setTimeout(() => {
+      if (mounted && isLoading) {
+        console.log('⏰ Auth initialization timeout, setting loading to false');
+        setIsLoading(false);
+      }
+    }, 5000);
+
     return () => {
       mounted = false;
       subscription.unsubscribe();
+      clearTimeout(timeoutId);
     };
   }, []);
 
@@ -219,6 +216,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           title: 'Login Successful',
           description: 'Welcome back!'
         });
+        // Don't set loading to false here - let auth state change handle it
         return true;
       }
 
@@ -404,7 +402,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     profile,
     session,
     profiles,
-    isAuthenticated: !!user && !!profile,
+    isAuthenticated: !!user, // Simplified - don't require profile for auth
     isLoading,
     login,
     signUp,
