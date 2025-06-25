@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -51,6 +50,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Fetch user profile from database
   const fetchUserProfile = async (userId: string) => {
     try {
+      console.log('🔍 Fetching profile for user:', userId);
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -58,14 +58,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .single();
 
       if (error) {
-        console.error('Error fetching profile:', error);
+        console.error('❌ Error fetching profile:', error);
         return null;
       }
 
+      console.log('✅ Profile fetched:', data);
       // Type assertion to ensure compatibility
       return data as Profile;
     } catch (error) {
-      console.error('Error fetching profile:', error);
+      console.error('❌ Error fetching profile:', error);
       return null;
     }
   };
@@ -92,13 +93,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Initialize auth state
   useEffect(() => {
+    console.log('🚀 Initializing auth state...');
+    
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('📊 Initial session check:', session?.user?.email || 'No session');
       setSession(session);
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        fetchUserProfile(session.user.id).then(setProfile);
+        console.log('👤 User found, fetching profile...');
+        fetchUserProfile(session.user.id).then((profile) => {
+          console.log('📋 Profile set:', profile?.name || 'No profile');
+          setProfile(profile);
+        });
       }
       
       setIsLoading(false);
@@ -107,15 +115,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth state changed:', event, session?.user?.email);
+        console.log('🔄 Auth state changed:', event, session?.user?.email || 'No user');
         
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
+          console.log('👤 User authenticated, fetching profile...');
           const userProfile = await fetchUserProfile(session.user.id);
+          console.log('📋 Profile loaded:', userProfile?.name || 'No profile');
           setProfile(userProfile);
         } else {
+          console.log('👋 User logged out');
           setProfile(null);
         }
         
@@ -128,13 +139,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
+      console.log('🔐 Attempting login for:', email);
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password
       });
 
       if (error) {
-        console.error('Login error:', error);
+        console.error('❌ Login error:', error);
         toast({
           title: 'Login Failed',
           description: error.message,
@@ -144,6 +156,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       if (data.user) {
+        console.log('✅ Login successful for:', data.user.email);
         toast({
           title: 'Login Successful',
           description: 'Welcome to Safari Park Hotel Maintenance System'
@@ -153,7 +166,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       return false;
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('❌ Login error:', error);
       toast({
         title: 'Login Failed',
         description: 'An error occurred during login',
@@ -172,6 +185,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     department: string;
   }) => {
     try {
+      console.log('📝 Attempting signup for:', userData.email);
+      
       // Check if this is the first user - if so, make them super_admin
       const { data: existingProfiles } = await supabase
         .from('profiles')
@@ -180,12 +195,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       const isFirstUser = !existingProfiles || existingProfiles.length === 0;
       const finalRole = isFirstUser ? 'super_admin' : userData.role;
+      
+      console.log('👑 First user check:', isFirstUser, 'Final role:', finalRole);
 
       const { data, error } = await supabase.auth.signUp({
         email: userData.email,
         password: userData.password,
         options: {
-          emailRedirectTo: `${window.location.origin}/`,
+          emailRedirectTo: `${window.location.origin}/dashboard`,
           data: {
             name: userData.name,
             role: finalRole,
@@ -196,7 +213,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (error) {
-        console.error('Sign up error:', error);
+        console.error('❌ Sign up error:', error);
         toast({
           title: 'Sign Up Failed',
           description: error.message,
@@ -206,19 +223,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       if (data.user) {
+        console.log('✅ Signup successful for:', data.user.email);
+        console.log('📧 Email confirmed:', data.user.email_confirmed_at ? 'Yes' : 'No');
+        
         toast({
           title: 'Sign Up Successful',
           description: isFirstUser 
-            ? 'Welcome! You have been granted admin access as the first user.'
-            : 'Please check your email to confirm your account.',
-          duration: 5000
+            ? 'Welcome! You have been granted admin access. You can now log in.'
+            : data.user.email_confirmed_at 
+              ? 'Account created successfully! You can now log in.'
+              : 'Please check your email to confirm your account before logging in.',
+          duration: 7000
         });
         return true;
       }
 
       return false;
     } catch (error) {
-      console.error('Sign up error:', error);
+      console.error('❌ Sign up error:', error);
       toast({
         title: 'Sign Up Failed',
         description: 'An error occurred during sign up',
@@ -296,6 +318,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     try {
+      console.log('👋 Logging out...');
       const { error } = await supabase.auth.signOut();
       if (error) {
         console.error('Logout error:', error);

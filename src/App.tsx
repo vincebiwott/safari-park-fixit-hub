@@ -15,7 +15,9 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user, profile } = useAuth();
+  
+  console.log('🛡️ ProtectedRoute check:', { isAuthenticated, isLoading, hasUser: !!user, hasProfile: !!profile });
   
   if (isLoading) {
     return (
@@ -30,11 +32,19 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
     );
   }
   
-  return isAuthenticated ? <>{children}</> : <Navigate to="/login" />;
+  if (!isAuthenticated) {
+    console.log('🚫 Not authenticated, redirecting to login');
+    return <Navigate to="/login" />;
+  }
+  
+  console.log('✅ Authenticated, rendering protected content');
+  return <>{children}</>;
 };
 
 const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { profile, isAuthenticated, isLoading } = useAuth();
+  
+  console.log('👑 AdminRoute check:', { role: profile?.role, isAuthenticated, isLoading });
   
   if (isLoading) {
     return (
@@ -50,12 +60,19 @@ const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   }
   
   if (!isAuthenticated) return <Navigate to="/login" />;
-  if (profile?.role !== 'super_admin') return <Navigate to="/dashboard" />;
+  if (profile?.role !== 'super_admin') {
+    console.log('🚫 Not admin, redirecting to dashboard');
+    return <Navigate to="/dashboard" />;
+  }
+  
+  console.log('✅ Admin access granted');
   return <>{children}</>;
 };
 
 const AppRoutes: React.FC = () => {
   const { isAuthenticated, isLoading } = useAuth();
+
+  console.log('🗺️ AppRoutes render:', { isAuthenticated, isLoading });
 
   if (isLoading) {
     return (
