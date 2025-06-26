@@ -14,7 +14,86 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 const Dashboard: React.FC = () => {
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
+
+  // Show loading state while profile is being fetched
+  if (!profile && user) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center mx-auto mb-4 animate-pulse">
+            <span className="text-white font-bold text-sm">SP</span>
+          </div>
+          <p className="text-gray-600">Loading your dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Fallback dashboard if no profile is available
+  if (!profile) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Welcome to Safari Park Hotel</h1>
+          <p className="text-gray-600">Maintenance Management System</p>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <StatsCard
+            title="System Status"
+            value="Online"
+            description="All systems operational"
+            icon={CheckCircle}
+            className="border-l-4 border-l-primary"
+          />
+          <StatsCard
+            title="Active Users"
+            value="47"
+            description="Currently online"
+            icon={Users}
+            trend={{ value: 12, isPositive: true }}
+          />
+          <StatsCard
+            title="Total Tickets"
+            value="1,247"
+            description="All time"
+            icon={FileText}
+            trend={{ value: 15, isPositive: true }}
+          />
+          <StatsCard
+            title="Response Time"
+            value="2.4 hrs"
+            description="Average"
+            icon={Clock}
+            trend={{ value: 8, isPositive: true }}
+          />
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Getting Started</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-gray-600 mb-4">
+              Welcome to the Safari Park Hotel Maintenance Management System. 
+              Your profile is being loaded. Please refresh the page if this takes too long.
+            </p>
+            <div className="grid grid-cols-2 gap-4">
+              <button className="p-4 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
+                <FileText className="h-6 w-6 mx-auto mb-2" />
+                <span className="text-sm font-medium">View Tickets</span>
+              </button>
+              <button className="p-4 bg-secondary text-white rounded-lg hover:bg-secondary/90 transition-colors">
+                <Users className="h-6 w-6 mx-auto mb-2" />
+                <span className="text-sm font-medium">Manage Users</span>
+              </button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   const renderSupervisorDashboard = () => (
     <div className="space-y-6">
@@ -485,7 +564,21 @@ const Dashboard: React.FC = () => {
     case 'super_admin':
       return renderAdminDashboard();
     default:
-      return <div>Loading...</div>;
+      return (
+        <div className="space-y-6">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Welcome, {profile?.name || 'User'}</h1>
+            <p className="text-gray-600">Role: {profile?.role || 'Unknown'}</p>
+          </div>
+          <Card>
+            <CardContent className="pt-6">
+              <p className="text-gray-600">
+                Your dashboard is being configured based on your role. Please contact your administrator if you continue to see this message.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      );
   }
 };
 

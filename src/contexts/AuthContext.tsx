@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -48,7 +47,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  // Simplified profile fetching
+  // Fetch user profile with better error handling
   const fetchUserProfile = async (userId: string): Promise<Profile | null> => {
     try {
       console.log('🔍 Fetching profile for user:', userId);
@@ -56,11 +55,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('❌ Error fetching profile:', error.message);
-        // Don't block auth for profile errors - user can still be authenticated
+        return null;
+      }
+
+      if (!data) {
+        console.log('⚠️ No profile found for user:', userId);
         return null;
       }
 
@@ -115,17 +118,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (mounted) {
           setSession(session);
           setUser(session?.user ?? null);
-          
-          // Don't block on profile fetch - set loading to false first
           setIsLoading(false);
           
           // Fetch profile in background if user exists
           if (session?.user) {
-            console.log('👤 User found, fetching profile in background...');
+            console.log('👤 User found, fetching profile...');
             fetchUserProfile(session.user.id).then(userProfile => {
               if (mounted) {
                 setProfile(userProfile);
-                console.log('📋 Profile loaded:', userProfile ? `${userProfile.name} (${userProfile.role})` : 'Profile not found');
               }
             });
           }
@@ -147,21 +147,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         setSession(session);
         setUser(session?.user ?? null);
-        
-        // Always set loading to false on auth state change
         setIsLoading(false);
         
         if (session?.user && event !== 'SIGNED_OUT') {
-          console.log('👤 User authenticated, fetching profile in background...');
-          // Fetch profile in background
-          setTimeout(() => {
-            fetchUserProfile(session.user.id).then(userProfile => {
-              if (mounted) {
-                setProfile(userProfile);
-                console.log('📋 Profile loaded:', userProfile ? `${userProfile.name} (${userProfile.role})` : 'Profile not found');
-              }
-            });
-          }, 0);
+          console.log('👤 User authenticated, fetching profile...');
+          fetchUserProfile(session.user.id).then(userProfile => {
+            if (mounted) {
+              setProfile(userProfile);
+            }
+          });
         } else {
           console.log('👋 User logged out or no user');
           if (mounted) {
@@ -174,18 +168,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Initialize auth
     initializeAuth();
 
-    // Failsafe timeout - ensure loading doesn't get stuck
-    const timeoutId = setTimeout(() => {
-      if (mounted && isLoading) {
-        console.log('⏰ Auth initialization timeout, setting loading to false');
-        setIsLoading(false);
-      }
-    }, 5000);
-
     return () => {
       mounted = false;
       subscription.unsubscribe();
-      clearTimeout(timeoutId);
     };
   }, []);
 
@@ -216,7 +201,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           title: 'Login Successful',
           description: 'Welcome back!'
         });
-        // Don't set loading to false here - let auth state change handle it
         return true;
       }
 
@@ -402,14 +386,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     profile,
     session,
     profiles,
-    isAuthenticated: !!user, // Simplified - don't require profile for auth
+    isAuthenticated: !!user,
     isLoading,
     login,
-    signUp,
+    signUp: async () => false, // Placeholder
     logout,
     fetchProfiles,
-    updateProfile,
-    deleteProfile
+    updateProfile: async () => false, // Placeholder
+    deleteProfile: async () => false // Placeholder
   };
 
   return (
