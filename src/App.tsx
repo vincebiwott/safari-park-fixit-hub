@@ -10,6 +10,9 @@ import LoginForm from "./components/Auth/LoginForm";
 import SignUpForm from "./components/Auth/SignUpForm";
 import Dashboard from "./pages/Dashboard";
 import UserManagement from "./pages/UserManagement";
+import TicketSubmission from "./pages/TicketSubmission";
+import MyTickets from "./pages/MyTickets";
+import AllTickets from "./pages/AllTickets";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -84,6 +87,21 @@ const AppRoutes: React.FC = () => {
       <Route path="/dashboard" element={
         <ProtectedRoute>
           <Dashboard />
+        </ProtectedRoute>
+      } />
+      <Route path="/submit-ticket" element={
+        <ProtectedRoute>
+          <TicketSubmission />
+        </ProtectedRoute>
+      } />
+      <Route path="/my-tickets" element={
+        <ProtectedRoute>
+          <MyTickets />
+        </ProtectedRoute>
+      } />
+      <Route path="/all-tickets" element={
+        <ProtectedRoute>
+          <AllTickets />
         </ProtectedRoute>
       } />
       <Route path="/users" element={

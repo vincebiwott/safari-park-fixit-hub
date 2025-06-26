@@ -1,25 +1,109 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Shield, Trash2, Edit2, UserPlus } from 'lucide-react';
+import { Shield, Trash2, Edit2, UserPlus, Users } from 'lucide-react';
+
+interface NewUserForm {
+  name: string;
+  email: string;
+  password: string;
+  role: string;
+  technicianCategory: string;
+  department: string;
+}
 
 const UserManagement: React.FC = () => {
   const { profile, profiles, fetchProfiles, updateProfile, deleteProfile } = useAuth();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState<string>('all');
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [newUser, setNewUser] = useState<NewUserForm>({
+    name: '',
+    email: '',
+    password: '',
+    role: 'technician',
+    technicianCategory: '',
+    department: 'Maintenance'
+  });
 
   useEffect(() => {
     if (profile?.role === 'super_admin') {
       fetchProfiles();
+      
+      // Set up real-time subscription for profiles
+      const channel = supabase
+        .channel('profiles-changes')
+        .on('postgres_changes', 
+          { event: '*', schema: 'public', table: 'profiles' },
+          () => {
+            console.log('Profile updated, refreshing...');
+            fetchProfiles();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
     }
-  }, [profile]);
+  }, [profile, fetchProfiles]);
+
+  const handleCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: newUser.email,
+        password: newUser.password,
+        options: {
+          data: {
+            name: newUser.name,
+            role: newUser.role,
+            technician_category: newUser.role === 'technician' ? newUser.technicianCategory : null,
+            department: newUser.department
+          }
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: 'User Created',
+        description: `${newUser.name} has been added to the system`
+      });
+
+      // Reset form and close dialog
+      setNewUser({
+        name: '',
+        email: '',
+        password: '',
+        role: 'technician',
+        technicianCategory: '',
+        department: 'Maintenance'
+      });
+      setIsDialogOpen(false);
+      
+      // Refresh profiles
+      setTimeout(() => fetchProfiles(), 1000);
+    } catch (error: any) {
+      console.error('Error creating user:', error);
+      toast({
+        title: 'Creation Failed',
+        description: error.message || 'Failed to create user',
+        variant: 'destructive'
+      });
+    }
+  };
 
   const filteredProfiles = profiles.filter(user => {
     const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -82,6 +166,101 @@ const UserManagement: React.FC = () => {
           <h1 className="text-3xl font-bold text-gray-900">User Management</h1>
           <p className="text-gray-600">Manage system users and permissions</p>
         </div>
+        
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <UserPlus className="h-4 w-4 mr-2" />
+              Add User
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Create New User</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleCreateUser} className="space-y-4">
+              <div>
+                <Label htmlFor="name">Full Name</Label>
+                <Input
+                  id="name"
+                  value={newUser.name}
+                  onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
+                  required
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={newUser.email}
+                  onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                  required
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={newUser.password}
+                  onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                  required
+                  minLength={6}
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="role">Role</Label>
+                <Select value={newUser.role} onValueChange={(value) => setNewUser({ ...newUser, role: value })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="technician">Technician</SelectItem>
+                    <SelectItem value="supervisor">Supervisor</SelectItem>
+                    <SelectItem value="hod">Head of Department</SelectItem>
+                    <SelectItem value="super_admin">Super Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {newUser.role === 'technician' && (
+                <div>
+                  <Label htmlFor="category">Technician Category</Label>
+                  <Select value={newUser.technicianCategory} onValueChange={(value) => setNewUser({ ...newUser, technicianCategory: value })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="plumber">Plumber</SelectItem>
+                      <SelectItem value="electrician">Electrician</SelectItem>
+                      <SelectItem value="ict">ICT</SelectItem>
+                      <SelectItem value="carpenter">Carpenter</SelectItem>
+                      <SelectItem value="ac_fridge">AC/Fridge</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              
+              <div>
+                <Label htmlFor="department">Department</Label>
+                <Input
+                  id="department"
+                  value={newUser.department}
+                  onChange={(e) => setNewUser({ ...newUser, department: e.target.value })}
+                  required
+                />
+              </div>
+              
+              <Button type="submit" className="w-full">
+                Create User
+              </Button>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Filters */}
@@ -113,7 +292,7 @@ const UserManagement: React.FC = () => {
           <CardContent className="p-4">
             <div className="flex items-center space-x-2">
               <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-                <Shield className="h-4 w-4 text-primary" />
+                <Users className="h-4 w-4 text-primary" />
               </div>
               <div>
                 <p className="text-2xl font-bold">{profiles.length}</p>
