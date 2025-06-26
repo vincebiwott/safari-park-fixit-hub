@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import StatsCard from '@/components/Dashboard/StatsCard';
 import { 
@@ -14,83 +14,26 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 const Dashboard: React.FC = () => {
-  const { profile, user } = useAuth();
+  const { profile, user, fetchProfiles } = useAuth();
 
-  // Show loading state while profile is being fetched
-  if (!profile && user) {
+  // Fetch profiles for admin users
+  useEffect(() => {
+    if (profile?.role === 'super_admin') {
+      console.log('🔄 Super admin detected, fetching all profiles...');
+      fetchProfiles();
+    }
+  }, [profile?.role, fetchProfiles]);
+
+  // Show content immediately if user is authenticated, even without profile
+  if (!user) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center mx-auto mb-4 animate-pulse">
             <span className="text-white font-bold text-sm">SP</span>
           </div>
-          <p className="text-gray-600">Loading your dashboard...</p>
+          <p className="text-gray-600">Please log in to access the dashboard</p>
         </div>
-      </div>
-    );
-  }
-
-  // Fallback dashboard if no profile is available
-  if (!profile) {
-    return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Welcome to Safari Park Hotel</h1>
-          <p className="text-gray-600">Maintenance Management System</p>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <StatsCard
-            title="System Status"
-            value="Online"
-            description="All systems operational"
-            icon={CheckCircle}
-            className="border-l-4 border-l-primary"
-          />
-          <StatsCard
-            title="Active Users"
-            value="47"
-            description="Currently online"
-            icon={Users}
-            trend={{ value: 12, isPositive: true }}
-          />
-          <StatsCard
-            title="Total Tickets"
-            value="1,247"
-            description="All time"
-            icon={FileText}
-            trend={{ value: 15, isPositive: true }}
-          />
-          <StatsCard
-            title="Response Time"
-            value="2.4 hrs"
-            description="Average"
-            icon={Clock}
-            trend={{ value: 8, isPositive: true }}
-          />
-        </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Getting Started</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-gray-600 mb-4">
-              Welcome to the Safari Park Hotel Maintenance Management System. 
-              Your profile is being loaded. Please refresh the page if this takes too long.
-            </p>
-            <div className="grid grid-cols-2 gap-4">
-              <button className="p-4 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
-                <FileText className="h-6 w-6 mx-auto mb-2" />
-                <span className="text-sm font-medium">View Tickets</span>
-              </button>
-              <button className="p-4 bg-secondary text-white rounded-lg hover:bg-secondary/90 transition-colors">
-                <Users className="h-6 w-6 mx-auto mb-2" />
-                <span className="text-sm font-medium">Manage Users</span>
-              </button>
-            </div>
-          </CardContent>
-        </Card>
       </div>
     );
   }
@@ -98,7 +41,7 @@ const Dashboard: React.FC = () => {
   const renderSupervisorDashboard = () => (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Welcome, {profile?.name}</h1>
+        <h1 className="text-3xl font-bold text-gray-900">Welcome, {profile?.name || 'Supervisor'}</h1>
         <p className="text-gray-600">Supervisor Dashboard - Submit and track your maintenance requests</p>
       </div>
       
@@ -187,8 +130,8 @@ const Dashboard: React.FC = () => {
   const renderTechnicianDashboard = () => (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Welcome, {profile?.name}</h1>
-        <p className="text-gray-600">Technician Dashboard - {profile?.technician_category} specialist</p>
+        <h1 className="text-3xl font-bold text-gray-900">Welcome, {profile?.name || 'Technician'}</h1>
+        <p className="text-gray-600">Technician Dashboard - {profile?.technician_category || 'General'} specialist</p>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -294,7 +237,7 @@ const Dashboard: React.FC = () => {
   const renderHODDashboard = () => (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Welcome, {profile?.name}</h1>
+        <h1 className="text-3xl font-bold text-gray-900">Welcome, {profile?.name || 'Department Head'}</h1>
         <p className="text-gray-600">Head of Department Dashboard - System Overview</p>
       </div>
       
@@ -426,7 +369,7 @@ const Dashboard: React.FC = () => {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-gray-900">System Administration</h1>
-        <p className="text-gray-600">Complete system overview and management controls</p>
+        <p className="text-gray-600">Welcome, {profile?.name || 'Administrator'} - Complete system overview and management controls</p>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6">
@@ -554,7 +497,12 @@ const Dashboard: React.FC = () => {
     </div>
   );
 
-  switch (profile?.role) {
+  // Show content based on profile role, or default content if profile is still loading
+  const role = profile?.role || 'loading';
+  
+  console.log('🎭 Rendering dashboard for role:', role, 'Profile loaded:', !!profile);
+
+  switch (role) {
     case 'supervisor':
       return renderSupervisorDashboard();
     case 'technician':
@@ -563,22 +511,10 @@ const Dashboard: React.FC = () => {
       return renderHODDashboard();
     case 'super_admin':
       return renderAdminDashboard();
+    case 'loading':
     default:
-      return (
-        <div className="space-y-6">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Welcome, {profile?.name || 'User'}</h1>
-            <p className="text-gray-600">Role: {profile?.role || 'Unknown'}</p>
-          </div>
-          <Card>
-            <CardContent className="pt-6">
-              <p className="text-gray-600">
-                Your dashboard is being configured based on your role. Please contact your administrator if you continue to see this message.
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      );
+      // Show default admin dashboard for any authenticated user while profile loads
+      return renderAdminDashboard();
   }
 };
 

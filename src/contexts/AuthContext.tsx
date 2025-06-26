@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -78,6 +79,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Fetch all profiles (for admin use)
   const fetchProfiles = async () => {
     try {
+      console.log('📊 Fetching all profiles...');
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -88,6 +90,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
+      console.log('✅ Fetched profiles count:', data?.length || 0);
       setProfiles((data || []) as Profile[]);
     } catch (error) {
       console.error('Error fetching profiles:', error);
@@ -118,17 +121,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (mounted) {
           setSession(session);
           setUser(session?.user ?? null);
-          setIsLoading(false);
           
-          // Fetch profile in background if user exists
+          // Fetch profile if user exists
           if (session?.user) {
             console.log('👤 User found, fetching profile...');
-            fetchUserProfile(session.user.id).then(userProfile => {
-              if (mounted) {
-                setProfile(userProfile);
-              }
-            });
+            const userProfile = await fetchUserProfile(session.user.id);
+            if (mounted) {
+              setProfile(userProfile);
+              console.log('🎯 Profile set:', userProfile?.role);
+            }
           }
+          
+          setIsLoading(false);
         }
       } catch (error) {
         console.error('❌ Error initializing auth:', error);
@@ -147,20 +151,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         setSession(session);
         setUser(session?.user ?? null);
-        setIsLoading(false);
         
         if (session?.user && event !== 'SIGNED_OUT') {
           console.log('👤 User authenticated, fetching profile...');
-          fetchUserProfile(session.user.id).then(userProfile => {
-            if (mounted) {
-              setProfile(userProfile);
-            }
-          });
+          const userProfile = await fetchUserProfile(session.user.id);
+          if (mounted) {
+            setProfile(userProfile);
+            console.log('🎯 Profile set:', userProfile?.role);
+          }
         } else {
           console.log('👋 User logged out or no user');
           if (mounted) {
             setProfile(null);
+            setProfiles([]);
           }
+        }
+        
+        if (mounted) {
+          setIsLoading(false);
         }
       }
     );
@@ -389,11 +397,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isAuthenticated: !!user,
     isLoading,
     login,
-    signUp: async () => false, // Placeholder
+    signUp,
     logout,
     fetchProfiles,
-    updateProfile: async () => false, // Placeholder
-    deleteProfile: async () => false // Placeholder
+    updateProfile,
+    deleteProfile
   };
 
   return (
