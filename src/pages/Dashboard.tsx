@@ -14,7 +14,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 const Dashboard: React.FC = () => {
-  const { profile, user, fetchProfiles } = useAuth();
+  const { profile, user, fetchProfiles, isLoading } = useAuth();
 
   // Fetch profiles for admin users
   useEffect(() => {
@@ -24,7 +24,21 @@ const Dashboard: React.FC = () => {
     }
   }, [profile?.role, fetchProfiles]);
 
-  // Show content immediately if user is authenticated, even without profile
+  // Show loading only if we're still initializing auth
+  if (isLoading && !user) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center mx-auto mb-4 animate-pulse">
+            <span className="text-white font-bold text-sm">SP</span>
+          </div>
+          <p className="text-gray-600">Loading Safari Park Hotel System...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show content if user is authenticated, even without profile
   if (!user) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -41,7 +55,7 @@ const Dashboard: React.FC = () => {
   const renderSupervisorDashboard = () => (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Welcome, {profile?.name || 'Supervisor'}</h1>
+        <h1 className="text-3xl font-bold text-gray-900">Welcome, {profile?.name || user?.email?.split('@')[0] || 'Supervisor'}</h1>
         <p className="text-gray-600">Supervisor Dashboard - Submit and track your maintenance requests</p>
       </div>
       
@@ -130,7 +144,7 @@ const Dashboard: React.FC = () => {
   const renderTechnicianDashboard = () => (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Welcome, {profile?.name || 'Technician'}</h1>
+        <h1 className="text-3xl font-bold text-gray-900">Welcome, {profile?.name || user?.email?.split('@')[0] || 'Technician'}</h1>
         <p className="text-gray-600">Technician Dashboard - {profile?.technician_category || 'General'} specialist</p>
       </div>
       
@@ -237,7 +251,7 @@ const Dashboard: React.FC = () => {
   const renderHODDashboard = () => (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Welcome, {profile?.name || 'Department Head'}</h1>
+        <h1 className="text-3xl font-bold text-gray-900">Welcome, {profile?.name || user?.email?.split('@')[0] || 'Department Head'}</h1>
         <p className="text-gray-600">Head of Department Dashboard - System Overview</p>
       </div>
       
@@ -369,7 +383,7 @@ const Dashboard: React.FC = () => {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-gray-900">System Administration</h1>
-        <p className="text-gray-600">Welcome, {profile?.name || 'Administrator'} - Complete system overview and management controls</p>
+        <p className="text-gray-600">Welcome, {profile?.name || user?.email?.split('@')[0] || 'Administrator'} - Complete system overview and management controls</p>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6">
@@ -497,10 +511,10 @@ const Dashboard: React.FC = () => {
     </div>
   );
 
-  // Show content based on profile role, or default content if profile is still loading
-  const role = profile?.role || 'loading';
+  // Determine which dashboard to show based on role, with fallback to admin dashboard
+  const role = profile?.role || 'super_admin';
   
-  console.log('🎭 Rendering dashboard for role:', role, 'Profile loaded:', !!profile);
+  console.log('🎭 Rendering dashboard for role:', role, 'Profile loaded:', !!profile, 'User authenticated:', !!user);
 
   switch (role) {
     case 'supervisor':
@@ -510,10 +524,7 @@ const Dashboard: React.FC = () => {
     case 'hod':
       return renderHODDashboard();
     case 'super_admin':
-      return renderAdminDashboard();
-    case 'loading':
     default:
-      // Show default admin dashboard for any authenticated user while profile loads
       return renderAdminDashboard();
   }
 };

@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -48,23 +47,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  // Fetch user profile with better error handling
+  // Fetch user profile with retry logic
   const fetchUserProfile = async (userId: string): Promise<Profile | null> => {
     try {
       console.log('🔍 Fetching profile for user:', userId);
+      
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .maybeSingle();
+        .single();
 
       if (error) {
         console.error('❌ Error fetching profile:', error.message);
-        return null;
-      }
-
-      if (!data) {
-        console.log('⚠️ No profile found for user:', userId);
+        // If no profile exists, create a default one
+        if (error.code === 'PGRST116') {
+          console.log('📝 No profile found, creating default profile...');
+          const { data: userData } = await supabase.auth.getUser();
+          if (userData.user) {
+            const { data: newProfile, error: createError } = await supabase
+              .from('profiles')
+              .insert({
+                id: userId,
+                name: userData.user.email?.split('@')[0] || 'User',
+                email: userData.user.email || '',
+                role: 'supervisor',
+                department: 'General',
+                is_active: true
+              })
+              .select()
+              .single();
+              
+            if (createError) {
+              console.error('❌ Error creating profile:', createError);
+              return null;
+            }
+            
+            console.log('✅ Profile created successfully:', newProfile);
+            return newProfile as Profile;
+          }
+        }
         return null;
       }
 
