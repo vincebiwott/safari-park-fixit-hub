@@ -11,7 +11,8 @@ import {
   Settings,
   Archive,
   Calendar,
-  AlertTriangle
+  AlertTriangle,
+  Plus
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -24,11 +25,15 @@ const Sidebar: React.FC = () => {
       { name: 'Dashboard', href: '/dashboard', icon: Home }
     ];
 
-    switch (profile?.role) {
+    if (!profile) {
+      return baseItems;
+    }
+
+    switch (profile.role) {
       case 'supervisor':
         return [
           ...baseItems,
-          { name: 'Submit Ticket', href: '/submit-ticket', icon: FileText },
+          { name: 'Submit Ticket', href: '/submit-ticket', icon: Plus },
           { name: 'My Tickets', href: '/my-tickets', icon: FileText },
           { name: 'History', href: '/history', icon: Archive }
         ];

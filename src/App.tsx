@@ -65,6 +65,21 @@ const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return <>{children}</>;
 };
 
+const HODRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { profile, isAuthenticated, isLoading } = useAuth();
+  
+  if (isLoading) {
+    return <LoadingSpinner />;
+  }
+  
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (!profile || !['hod', 'super_admin'].includes(profile.role)) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  
+  return <>{children}</>;
+};
+
 const AppRoutes: React.FC = () => {
   const { isAuthenticated, isLoading } = useAuth();
 
@@ -100,9 +115,9 @@ const AppRoutes: React.FC = () => {
         </ProtectedRoute>
       } />
       <Route path="/all-tickets" element={
-        <ProtectedRoute>
+        <HODRoute>
           <AllTickets />
-        </ProtectedRoute>
+        </HODRoute>
       } />
       <Route path="/users" element={
         <AdminRoute>

@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -48,7 +49,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const { toast } = useToast();
 
   // Fetch user profile with retry logic
-  const fetchUserProfile = async (userId: string): Promise<Profile | null> => {
+  const fetchUserProfile = async (userId: string, retries = 3): Promise<Profile | null> => {
     try {
       console.log('🔍 Fetching profile for user:', userId);
       
@@ -60,6 +61,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) {
         console.error('❌ Error fetching profile:', error.message);
+        
         // If no profile exists, create a default one
         if (error.code === 'PGRST116') {
           console.log('📝 No profile found, creating default profile...');
@@ -80,6 +82,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               
             if (createError) {
               console.error('❌ Error creating profile:', createError);
+              if (retries > 0) {
+                console.log(`🔄 Retrying profile creation... (${retries} attempts left)`);
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                return fetchUserProfile(userId, retries - 1);
+              }
               return null;
             }
             
@@ -87,6 +94,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             return newProfile as Profile;
           }
         }
+        
+        // Retry on other errors
+        if (retries > 0) {
+          console.log(`🔄 Retrying profile fetch... (${retries} attempts left)`);
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          return fetchUserProfile(userId, retries - 1);
+        }
+        
         return null;
       }
 
@@ -94,6 +109,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return data as Profile;
     } catch (error) {
       console.error('❌ Exception fetching profile:', error);
+      
+      if (retries > 0) {
+        console.log(`🔄 Retrying after exception... (${retries} attempts left)`);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        return fetchUserProfile(userId, retries - 1);
+      }
+      
       return null;
     }
   };
@@ -148,9 +170,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (session?.user) {
             console.log('👤 User found, fetching profile...');
             const userProfile = await fetchUserProfile(session.user.id);
-            if (mounted) {
+            if (mounted && userProfile) {
               setProfile(userProfile);
-              console.log('🎯 Profile set:', userProfile?.role);
+              console.log('🎯 Profile set:', userProfile.role);
             }
           }
           
@@ -177,9 +199,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (session?.user && event !== 'SIGNED_OUT') {
           console.log('👤 User authenticated, fetching profile...');
           const userProfile = await fetchUserProfile(session.user.id);
-          if (mounted) {
+          if (mounted && userProfile) {
             setProfile(userProfile);
-            console.log('🎯 Profile set:', userProfile?.role);
+            console.log('🎯 Profile set:', userProfile.role);
           }
         } else {
           console.log('👋 User logged out or no user');
@@ -345,7 +367,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Update current profile if it's the same user
       if (profile && profile.id === id) {
         const updatedProfile = await fetchUserProfile(id);
-        setProfile(updatedProfile);
+        if (updatedProfile) {
+          setProfile(updatedProfile);
+        }
       }
 
       toast({
@@ -416,7 +440,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     profile,
     session,
     profiles,
-    isAuthenticated: !!user,
+    isAuthenticated: !!user && !!profile,
     isLoading,
     login,
     signUp,

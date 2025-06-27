@@ -14,7 +14,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 const Dashboard: React.FC = () => {
-  const { profile, user, fetchProfiles, isLoading } = useAuth();
+  const { profile, user, fetchProfiles, isLoading, isAuthenticated } = useAuth();
 
   // Fetch profiles for admin users
   useEffect(() => {
@@ -24,8 +24,8 @@ const Dashboard: React.FC = () => {
     }
   }, [profile?.role, fetchProfiles]);
 
-  // Show loading only if we're still initializing auth
-  if (isLoading && !user) {
+  // Show loading only if we're still authenticating
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
@@ -38,12 +38,12 @@ const Dashboard: React.FC = () => {
     );
   }
 
-  // Show content if user is authenticated, even without profile
-  if (!user) {
+  // Show content if user is authenticated
+  if (!isAuthenticated) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
-          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center mx-auto mb-4 animate-pulse">
+          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center mx-auto mb-4">
             <span className="text-white font-bold text-sm">SP</span>
           </div>
           <p className="text-gray-600">Please log in to access the dashboard</p>
@@ -511,8 +511,8 @@ const Dashboard: React.FC = () => {
     </div>
   );
 
-  // Determine which dashboard to show based on role, with fallback to admin dashboard
-  const role = profile?.role || 'super_admin';
+  // Determine which dashboard to show based on role
+  const role = profile?.role || 'supervisor';
   
   console.log('🎭 Rendering dashboard for role:', role, 'Profile loaded:', !!profile, 'User authenticated:', !!user);
 
@@ -524,8 +524,9 @@ const Dashboard: React.FC = () => {
     case 'hod':
       return renderHODDashboard();
     case 'super_admin':
-    default:
       return renderAdminDashboard();
+    default:
+      return renderSupervisorDashboard();
   }
 };
 
